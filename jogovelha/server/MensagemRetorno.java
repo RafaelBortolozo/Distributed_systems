@@ -6,7 +6,9 @@ import java.io.Serializable;
  * código 1: sucesso - entrar no jogo
  * código 2: erro - id existente
  * código 3: erro - jogo cheio
- *
+ * código 4: erro - casa da matriz já ocupada
+ * código 5: sucesso - print da matriz
+ * código 6: sucesso - iniciar jogo
  *
  * */
 public class MensagemRetorno implements Serializable {

@@ -10,8 +10,10 @@ public class JogoVelhaServidor {
             Registry registro = LocateRegistry.createRegistry(12345);
 
             JogoVelhaInterface jogo = new JogoVelha();
+
             registro.bind("JogoVelha", jogo);
             System.out.println("Que comecem os jogos!!");
+
         } catch (Exception e){
             e.printStackTrace();
         }
