@@ -20,10 +20,12 @@ public class JogoVelha extends UnicastRemoteObject implements JogoVelhaInterface
         this.matriz = new int[3][3];
     }
 
+    //indica que o jogador selecionou a opcao 1 naquele menu
     public void estouPronto(){
         quantidadeJogadoresEmJogo++;
     }
 
+    //decrementa a quantidade de jogadores em jogo, servindo apenas para avisar o servidor quando o jogo acaba
     public void sair(){
         quantidadeJogadoresEmJogo--;
     }
@@ -185,17 +187,20 @@ public class JogoVelha extends UnicastRemoteObject implements JogoVelhaInterface
         return false;
     }
 
-    //retorna a String da matriz
+    //retorna a String da matriz (gambiarra)
     public String printMatriz() throws RemoteException {
         StringBuilder str = new StringBuilder();
-        for(int c=0 ;c<3 ;c++){
-            for(int l=0 ;l<3 ;l++){
-                String valor = Integer.toString(matriz[c][l]);
-                if(valor == "-1"){
+        String valor;
+        for(int l=0 ;l<3 ;l++){
+            for(int c=0 ;c<3 ;c++){
+                if(matriz[l][c] != 0){
+                    valor = Integer.toString(matriz[l][c]);
+                } else {
                     valor = " ";
                 }
+
                 str.append("|" + valor);
-                if(l == 2){
+                if(c == 2){
                     str.append("|\n");
                 }
             }
