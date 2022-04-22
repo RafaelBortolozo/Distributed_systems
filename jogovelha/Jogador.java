@@ -1,4 +1,4 @@
-package jogovelha.cliente;
+package jogovelha;
 
 import java.io.Serializable;
 

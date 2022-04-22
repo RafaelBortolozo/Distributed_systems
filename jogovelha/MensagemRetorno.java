@@ -1,4 +1,4 @@
-package jogovelha.server;
+package jogovelha;
 
 import java.io.Serializable;
 
