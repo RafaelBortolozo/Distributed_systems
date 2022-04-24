@@ -1,14 +1,21 @@
 import socket
 import os
 
-# PORT = int(input('Server Port: '))
-# ARQUIVES_ADDRESS = str(input('\nServer Arquives Address: '))
-
 IP = '127.0.0.1'
-PORT = 7777
-ARQUIVES_ADDRESS = 'arquives_server/'
+PORT = int(input('Server Port: '))
+ARQUIVES_ADDRESS = str(input('Server Arquives Path: '))
 
-BUFFER_SIZE = 4000000
+# PORT = 7777
+# ARQUIVES_ADDRESS = 'arquives_server/'
+
+def progressPercent(currentSize, totalSize):
+    try:
+        return int(currentSize*100/totalSize)
+    except ZeroDivisionError:
+        return 0
+
+def printUploading(currentSize, totalSize):
+    print("Uploading: {} ({}%)...".format(nameFileRequested, progressPercent(currentSize, totalSize)), end='\r')
 
 # Cria objeto socket especificando o protocolo IPV4 e o tipo de comunicacao (TCP neste caso)
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -24,7 +31,7 @@ print(f"\nListening on {IP}:{PORT}")
 # cliente_socket: Objeto socket do cliente
 # address: Endereco IP do cliente
 client_socket, address = server.accept()
-print(f"{address} is connected.")
+print(f"{address} is connected.\n")
 
 
 #******************** RECEBER NOME DO ARQUIVO E ENVIAR O ARQUIVO AO CLIENTE ********************#
@@ -36,10 +43,14 @@ nameFileRequested = client_socket.recv(1024).decode()
 addressFileRequested = ARQUIVES_ADDRESS + nameFileRequested
 
 # Abre o arquivo lendo somente os bytes (rb)
+fileSize = os.path.getsize(addressFileRequested)
+count = 0
 with open(addressFileRequested, 'rb') as file:
+    # Envie os bytes do arquivo em partes (atraves do for() percorrendo os bytes do arquivo)
     for data in file.readlines():
-        # Envie os bytes do arquivo em partes (atraves do for() percorrendo os bytes do arquivo)
         client_socket.send(data)
-
-    print("arquivo enviado.")
+        count += len(data)
+        print("Uploading: {} ({}%)...".format(nameFileRequested, progressPercent(count, fileSize)), end='\r')
+        
+    print("\nUploaded!")
 

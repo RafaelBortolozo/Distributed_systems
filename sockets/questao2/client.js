@@ -1,6 +1,8 @@
 const ip = '127.0.0.1'
 const port = 7777
-let extensionFile
+let fileNameRequested
+let downloadsPath = 'arquives_client/'
+let path
 
 //importacao da biblioteca manipuladora de arquivos
 var fs = require('fs')
@@ -10,7 +12,7 @@ var net = require('net');
 
 //importacao do readline (leitura de dados) para enviar ao servidor
 var readLine = require('readline')
-var nameFile = readLine.createInterface({
+var fileName = readLine.createInterface({
     input: process.stdin,
     output: process.stdout
 });
@@ -22,25 +24,25 @@ var client = new net.Socket();
 client.connect(port, ip, ()=>{
     console.log("connected on " + ip + ":" + port)
     console.log("Digite o nome do arquivo: ");
-    nameFile.addListener('line', line => {
-        extensionFile = line.split('.')[1] //extrai a extensao do arquivo
+    fileName.addListener('line', line => {
+        fileNameRequested = line //pega o nome do arquivo
         client.write(line) //envia o nome do arquivo ao servidor
-        console.log("Enviado, Aguarde...")
+        path = downloadsPath + fileNameRequested
+        console.log("Baixando " + fileNameRequested + "...")
     })
 })
 
 //Ao receber dados, adiciona o buffer em um arquivo
+let count = 0
 client.on('data', (buffer)=>{
-    nameFile = `arquive.${extensionFile}`
-    fs.appendFile(nameFile, buffer, () => {
-        console.log("Recebendo dados...")
-    })
+    fs.appendFileSync(path, buffer)
+    console.log(`Download ${count}%...`)
+    count++
 })
 
-// client.on('close', ()=>{
-//     console.log("Desconectado.")
-//     return
-// })
+client.on('close', ()=>{
+    console.log("Download finalizado.")
+})
 
 
 
