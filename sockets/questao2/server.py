@@ -2,11 +2,11 @@ import socket
 import os
 
 IP = '127.0.0.1'
-# PORT = int(input('Server Port: '))
-# ARQUIVES_ADDRESS = str(input('Server Arquives Path: '))
+PORT = int(input('Server Port: '))
+ARQUIVES_ADDRESS = str(input('Server Arquives Path: '))
 
-PORT = 7777
-ARQUIVES_ADDRESS = 'arquives_server/'
+# PORT = 7777
+# ARQUIVES_ADDRESS = 'arquives_server/'
 
 def progressPercent(currentSize, totalSize):
     try:
@@ -39,15 +39,25 @@ nameFileRequested = client_socket.recv(1024).decode()
 # Concatena com o endereco da pasta de arquivos
 addressFileRequested = ARQUIVES_ADDRESS + nameFileRequested
 
-# Abre o arquivo lendo somente os bytes (rb)
+# Pega tamanho do arquivo (uso em print)
 fileSize = os.path.getsize(addressFileRequested)
+
+# Envia ao cliente o tamanho do arquivo (uso em print)
+client_socket.send(("fileSize:{}".format(fileSize)).encode('utf-8'))
+
+# Abre o arquivo lendo somente os bytes (rb) e envia o tamanho do arquivo
 count = 0
 with open(addressFileRequested, 'rb') as file:
     # Envie os bytes do arquivo em partes (atraves do for() percorrendo os bytes do arquivo)
+    print("Uploading: {}...".format(nameFileRequested))
     for data in file.readlines():
         client_socket.send(data)
-        count += len(data)
-        print("Uploading: {} ({}%)...".format(nameFileRequested, progressPercent(count, fileSize)), end='\r')
+
+        ## Opcao de imprimir porcentagem, mas o servidor ##
+        ## fica lento e certamente vai corromper o arquivo ##
+
+        #count += len(data)
+        #print("Uploading: {} ({}%)...".format(nameFileRequested, progressPercent(count, fileSize)), end='\r')
         
     print("\nUploaded!")
 

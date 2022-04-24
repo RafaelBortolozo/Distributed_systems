@@ -1,21 +1,29 @@
+var fs = require('fs') //importacao da biblioteca manipuladora de arquivos
+var net = require('net'); //importacao do socket (pertence ao net)
+const { StringDecoder } = require('string_decoder'); //importacao do decoder utf-8
+var readline = require('readline') //importacao do readline (leitura de dados) para enviar ao servidor
+
 const ip = '127.0.0.1'
 const port = 7777
 let fileNameRequested
 let downloadsPath = 'arquives_client/'
 let path
 
-//importacao da biblioteca manipuladora de arquivos
-var fs = require('fs')
+//Funcao pra calcular porcentagem atual durante o download
+function progressPercent(currentSize, totalSize){
+    if(currentSize != 0 && totalSize != 0){
+        return Math.ceil((currentSize*100/totalSize)) 
+    } else{
+        return 0
+    }
+}
 
-//importacao do socket (pertence ao net)
-var net = require('net');
-
-//importacao do readline (leitura de dados) para enviar ao servidor
-var readLine = require('readline')
-var fileName = readLine.createInterface({
+var rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
+
+const decoder  = new StringDecoder('utf8')
 
 //nova instancia socket
 var client = new net.Socket();
@@ -24,7 +32,7 @@ var client = new net.Socket();
 client.connect(port, ip, ()=>{
     console.log("connected on " + ip + ":" + port)
     console.log("Digite o nome do arquivo: ");
-    fileName.addListener('line', line => {
+    rl.addListener('line', line => {
         fileNameRequested = line //pega o nome do arquivo
         client.write(line) //envia o nome do arquivo ao servidor
         path = downloadsPath + fileNameRequested
@@ -33,72 +41,29 @@ client.connect(port, ip, ()=>{
 })
 
 //Ao receber dados, adiciona o buffer em um arquivo
-let count = 0
+let bufferSize = 0
+let fileSize = 0
+let currentProgressPercent = 0
 client.on('data', (buffer)=>{
-    fs.appendFileSync(path, buffer)
-    console.log(`Download ${count}%...`)
-    count++
+    //se receber o tamanho do arquivo, salve, pois será usado no print de porcentagem no terminal
+    if(decoder.write(buffer).split(":")[0] == "fileSize"){
+        fileSize = parseInt(decoder.write(buffer).split(":")[1])
+    } else {
+        //Envia o arquivo
+        fs.appendFileSync(path, buffer)
+        
+        //Condicional pra diminuir a repeticao de console.log()
+        let aux = progressPercent(bufferSize, fileSize)
+        if(currentProgressPercent != aux){
+            console.log(`Downloading: ${fileNameRequested} (${aux}%)...`)
+            currentProgressPercent = aux
+        }
+        
+        bufferSize += buffer.length
+    }
+    
 })
 
 client.on('close', ()=>{
-    console.log("Download finalizado.")
+    console.log("Downloaded!")
 })
-
-
-
-
-
-
-
-
-
-
-
-
-
-// socket.connect(7777, "127.0.0.1");
-// var fs = require('fs');
-// var path = require('path');
-
-// var packets = 0;
-// var buffer = new Buffer.alloc(0);
-// socket.on('data', function(chunk){
-//   packets++;
-//   console.log(chunk);
-//   buffer = Buffer.concat([buffer, chunk]);
-// });
-
-// socket.on('close', function(){
-//   console.log("total packages", packets);
-
-//   var writeStream = fs.createWriteStream(path.join(__dirname, "out.jpg"));
-//   console.log("buffer size", buffer.length);
-//   while(buffer.length){
-//     var head = buffer.slice(0, 4);
-//     console.log("head", head.toString());
-//     if(head.toString() != "FILE"){
-//       console.log("ERROR!!!!");
-//       process.exit(1);
-//     }
-//     var sizeHex = buffer.slice(4, 8);
-//     var size = parseInt(sizeHex, 16);
-
-//     console.log("size", size);
-
-//     var content = buffer.slice(8, size + 8);
-//     var delimiter = buffer.slice(size + 8, size + 9);
-//     console.log("delimiter", delimiter.toString());
-//     if(delimiter != "@"){
-//       console.log("wrong delimiter!!!");
-//       process.exit(1);
-//     }
-
-//     writeStream.write(content);
-//     buffer = buffer.slice(size + 9);
-//   }
-
-//   setTimeout(function(){
-//     writeStream.end();
-//   }, 2000);
-
-// });
