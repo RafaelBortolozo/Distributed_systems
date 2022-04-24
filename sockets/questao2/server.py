@@ -2,20 +2,17 @@ import socket
 import os
 
 IP = '127.0.0.1'
-PORT = int(input('Server Port: '))
-ARQUIVES_ADDRESS = str(input('Server Arquives Path: '))
+# PORT = int(input('Server Port: '))
+# ARQUIVES_ADDRESS = str(input('Server Arquives Path: '))
 
-# PORT = 7777
-# ARQUIVES_ADDRESS = 'arquives_server/'
+PORT = 7777
+ARQUIVES_ADDRESS = 'arquives_server/'
 
 def progressPercent(currentSize, totalSize):
     try:
         return int(currentSize*100/totalSize)
     except ZeroDivisionError:
         return 0
-
-def printUploading(currentSize, totalSize):
-    print("Uploading: {} ({}%)...".format(nameFileRequested, progressPercent(currentSize, totalSize)), end='\r')
 
 # Cria objeto socket especificando o protocolo IPV4 e o tipo de comunicacao (TCP neste caso)
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
