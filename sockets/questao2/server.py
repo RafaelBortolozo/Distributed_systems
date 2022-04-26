@@ -1,7 +1,7 @@
 import socket
 import os
 
-IP = '127.0.0.1'
+IP = '172.31.1.137'
 PORT = int(input('Server Port: '))
 ARQUIVES_ADDRESS = ''
 while not os.path.exists(ARQUIVES_ADDRESS):

@@ -1,3 +1,0 @@
-Rafael: 123
-Eduardo: 456
-Icaro: 789

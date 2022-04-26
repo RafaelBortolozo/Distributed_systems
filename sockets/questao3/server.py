@@ -35,27 +35,28 @@ def getNamesAndPasswords(arquive):
     password = ''
     with io.open(arquive, "r", encoding="utf8") as arq:
         for line in arq.readlines():
-            aux = line.split(": ")
-            name = str(aux[0])
-            password = str(aux[1])
+            aux = line.strip('\n').split(":")
+            name = aux[0]
+            password = aux[1]
             students.append({
-                'name': question,
-                'password': password  
+                'name': name,
+                'password': password
             })
+    return students
 
-def verifyLogin(name, password){
+def verifyLogin(name, password):
     for student in STUDENTS:
-        if student['name'] == name and student['password'] == password:
-            return true
+        if (student['name'] == name and student['password'] == password):
+            return True
     
-    return false
-}
+    return False
 
 IP = '127.0.0.1'
 PORT = 7777
 RANDOM_QUESTIONS = getRandomQuestions(2, "perguntas.txt")
 STUDENTS = getNamesAndPasswords("alunos_e_senhas.txt")
 
+# socket - Conexao com cliente
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((IP, PORT))
 server.listen()
@@ -64,18 +65,17 @@ client_socket, address = server.accept()
 print(f"{address} is connected.\n")
 
 
-# #******************** RECEBER NOME DO ARQUIVO E ENVIAR O ARQUIVO AO CLIENTE ********************#
-
 # Recebe do cliente do nome de usuario e senha e realiza login
-authenticated = false
+authenticated = False
 while not authenticated:
-    print("client logging...\n")
+    print(f"client {address} logging...")
     name = client_socket.recv(1024).decode()
     password = client_socket.recv(1024).decode()
     authenticated = verifyLogin(name, password)
+    message = "authenticated:" + str(authenticated)
+    client_socket.send(message.encode())
 
-print("client logged.")
-
+print(f"client {address} authenticated.")
 
 # # Pega tamanho do arquivo (uso em print)
 # fileSize = os.path.getsize(addressFileRequested)
