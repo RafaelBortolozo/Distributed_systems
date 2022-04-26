@@ -51,6 +51,39 @@ def verifyLogin(name, password):
     
     return False
 
+def applyQuiz():
+    clientCorrectAnswers = 0
+    totalQuestions = len(RANDOM_QUESTIONS)
+    client.send(str(totalQuestions).encode()) 
+    
+    for index, obj in enumerate(RANDOM_QUESTIONS):
+        question = obj['question']
+        answer = obj['answer']
+        client.send(("\n" + str(index+1) + " - " + question).encode())
+        clientAnswer = client.recv(1024).decode() 
+        answerIsCorrect = answer == clientAnswer
+        if answerIsCorrect:
+            clientCorrectAnswers += 1
+            client.send(("Certa resposta!").encode()) 
+        else:
+            client.send(("Que pena, você errou.").encode())
+
+    resultQuiz = f"\nVocê acertou {clientCorrectAnswers}/{len(RANDOM_QUESTIONS)} questões."
+    client.send(resultQuiz.encode())
+        
+def clientLogin():
+    print(f"client {address} logging...")
+    name = client.recv(1024).decode()
+    password = client.recv(1024).decode()
+    authenticated = verifyLogin(name, password)
+    message = "authenticated:" + str(authenticated)
+    client.send(message.encode())
+    if authenticated:
+        print(f"client {address} authenticated.")
+        return
+    else: 
+        clientLogin()
+
 IP = '127.0.0.1'
 PORT = 7777
 RANDOM_QUESTIONS = getRandomQuestions(2, "perguntas.txt")
@@ -61,41 +94,8 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((IP, PORT))
 server.listen()
 print(f"\nListening on {IP}:{PORT}")
-client_socket, address = server.accept()
+client, address = server.accept()
 print(f"{address} is connected.\n")
 
-
-# Recebe do cliente do nome de usuario e senha e realiza login
-authenticated = False
-while not authenticated:
-    print(f"client {address} logging...")
-    name = client_socket.recv(1024).decode()
-    password = client_socket.recv(1024).decode()
-    authenticated = verifyLogin(name, password)
-    message = "authenticated:" + str(authenticated)
-    client_socket.send(message.encode())
-
-print(f"client {address} authenticated.")
-
-# # Pega tamanho do arquivo (uso em print)
-# fileSize = os.path.getsize(addressFileRequested)
-
-# # Envia ao cliente o tamanho do arquivo (uso em print)
-# client_socket.send(("fileSize:{}".format(fileSize)).encode('utf-8'))
-
-# # Abre o arquivo lendo somente os bytes (rb) e envia o tamanho do arquivo
-# count = 0
-# with open(addressFileRequested, 'rb') as file:
-#     # Envie os bytes do arquivo em partes (atraves do for() percorrendo os bytes do arquivo)
-#     print("Uploading: {}...".format(nameFileRequested))
-#     for data in file.readlines():
-#         client_socket.send(data)
-
-#         ## Opcao de imprimir porcentagem, mas o servidor ##
-#         ## fica lento e certamente vai corromper o arquivo ##
-
-#         #count += len(data)
-#         #print("Uploading: {} ({}%)...".format(nameFileRequested, progressPercent(count, fileSize)), end='\r')
-        
-#     print("\nUploaded!")
-
+clientLogin()
+applyQuiz()
