@@ -1,8 +1,7 @@
 import socket
-import os
 import io
-import sys
 import random
+import time
 
 def getRandomQuestions(maxQuestions, arquive):
     questions = []
@@ -20,7 +19,7 @@ def getRandomQuestions(maxQuestions, arquive):
             else:
                 answer = int(line)
                 questions.append({
-                    "question": question,
+                    "question": question.upper(),
                     "answer": answer
                 })
                 question = ""
@@ -44,34 +43,14 @@ def getNamesAndPasswords(arquive):
             })
     return students
 
-def verifyLogin(name, password):
-    for student in STUDENTS:
-        if (student['name'] == name and student['password'] == password):
-            return True
-    
-    return False
-
-def applyQuiz():
-    clientCorrectAnswers = 0
-    totalQuestions = len(RANDOM_QUESTIONS)
-    client.send(str(totalQuestions).encode()) 
-    
-    for index, obj in enumerate(RANDOM_QUESTIONS):
-        question = obj['question']
-        answer = obj['answer']
-        client.send(("\n" + str(index+1) + " - " + question).encode())
-        clientAnswer = client.recv(1024).decode() 
-        answerIsCorrect = answer == clientAnswer
-        if answerIsCorrect:
-            clientCorrectAnswers += 1
-            client.send(("Certa resposta!").encode()) 
-        else:
-            client.send(("Que pena, você errou.").encode())
-
-    resultQuiz = f"\nVocê acertou {clientCorrectAnswers}/{len(RANDOM_QUESTIONS)} questões."
-    client.send(resultQuiz.encode())
-        
 def clientLogin():
+    def verifyLogin(name, password):
+        for student in STUDENTS:
+            if (student['name'] == name and student['password'] == password):
+                return True
+        
+        return False
+
     print(f"client {address} logging...")
     name = client.recv(1024).decode()
     password = client.recv(1024).decode()
@@ -84,18 +63,42 @@ def clientLogin():
     else: 
         clientLogin()
 
+def applyQuiz():
+    clientCorrectAnswers = 0
+    totalQuestions = len(RANDOM_QUESTIONS)
+    client.send(str(totalQuestions).encode())
+    time.sleep(7)
+    
+    for index, obj in enumerate(RANDOM_QUESTIONS):
+        question = "\n{} - {}".format((index+1), obj["question"])
+        answer = int(obj["answer"])
+        client.send(question.encode())
+        clientAnswer = int(client.recv(1024).decode()) 
+        answerIsCorrect = answer == clientAnswer
+        time.sleep(1)
+        if answerIsCorrect:
+            clientCorrectAnswers += 1
+            client.send("Certa resposta!".encode())
+        else:
+            client.send("Que pena, você errou.".encode())
+        time.sleep(1.5)
+
+    resultQuiz = f"Questionário finalizado :)\nVocê acertou {clientCorrectAnswers}/{totalQuestions} questões."
+    client.send(resultQuiz.encode())
+    print(f"client {address} finished quiz")
+
 IP = '127.0.0.1'
 PORT = 7777
-RANDOM_QUESTIONS = getRandomQuestions(2, "perguntas.txt")
-STUDENTS = getNamesAndPasswords("alunos_e_senhas.txt")
+RANDOM_QUESTIONS = getRandomQuestions(10, "questions.txt")
+STUDENTS = getNamesAndPasswords("authorizedUsers.txt")
 
-# socket - Conexao com cliente
+# socket - client connection
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((IP, PORT))
 server.listen()
 print(f"\nListening on {IP}:{PORT}")
 client, address = server.accept()
-print(f"{address} is connected.\n")
+print(f"client {address} connected.")
 
 clientLogin()
 applyQuiz()
