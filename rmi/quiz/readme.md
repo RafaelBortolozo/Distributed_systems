@@ -1,10 +1,15 @@
-# Perguntas e respostas via socket
+# Perguntas e respostas via RMI
 
 - Python version 3.9.7
 
 Aplicação que apresenta perguntas de multipla escolha ao cliente. Ao final é apresentado o total de questões e quantas acertou/errou.
 
 Para executar basta rodar os comandos abaixo:
+
+Instalar dependências:
+```
+    pip install Pyro4
+```
 
 Servidor:
 
