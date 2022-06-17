@@ -6,8 +6,8 @@ Repositório para armazenar trabalhos desenvolvidos durante a disciplina de Sist
 
 - <a href="https://github.com/RafaelBortolozo/Distributed_systems/tree/main/sockets/fileTransfer">Transferência de Arquivo Socket (Python e Node)</a>
 
-- <a href="https://github.com/icaroperetti/distribuitedSystems/tree/main/sockets/quiz">Quiz utilizando Socket (Python)</a>
+- <a href="https://github.com/RafaelBortolozo/Distributed_systems/tree/main/sockets/quiz">Quiz utilizando Socket (Python)</a>
 
-- <a href="https://github.com/icaroperetti/distribuitedSystems/tree/main/sockets/quiz">Quiz utilizando Socket (Python)</a>
+- <a href="https://github.com/icaroperetti/distribuitedSystems/tree/main/sockets/quiz">Quiz utilizando RMI (Python)</a>
 
 - <a href="https://github.com/icaroperetti/distribuitedSystems/tree/main/syncronization">Sincronização de Relógios</a>
