@@ -1,98 +1,129 @@
 import numpy as np
 from socket import socket, AF_INET, SOCK_STREAM
-from utils import get_current_time, get_time_in_seconds, seconds_to_time_string
+from utils import get_tempo_atual, get_tempo_em_segundos, get_segundos_em_tempo
 from time import sleep
-from data import ADDR
 
-class Server:
-  def __init__(self, num_clients):
-    self.num_clients = num_clients
-    self.clients = []
-    self.server = None
-    self.sync_time()
 
-  def sync_time(self):
-    self.time = get_current_time()
 
-  def start(self):
-    self.server = socket(AF_INET, SOCK_STREAM)
-    self.server.bind(ADDR)
-    self.server.listen()
+class Servidor:
+  def __init__(self, num_clientes):
+    self.addr = ('127.0.0.1', 7777)
+    self.num_clientes = num_clientes
+    self.clientes = []
+    self.servidor = None
+    self.sync_tempo()
 
-    for i in range(self.num_clients):
-      print(f'Aguardando {i + 1}º cliente...')
-      conn, addr = self.server.accept()
-      print(f'Cliente {addr} conectou.')
-      self.clients.append((conn, addr))
-    self.listen()
 
-  def close(self):
-    for client in self.clients:
-      conn, addr = client
-      conn.close()
 
-    self.server.close()
+  # Pega o tempo atual do daemon
+  def sync_tempo(self):
+    self.tempo = get_tempo_atual()
 
-  def get_times(self):
-    request = 'get_time'
-    times = []
 
-    for client in self.clients:
-      conn, addr = client
-      conn.send(request.encode())
-      response = conn.recv(1024).decode()
-      times.append(response)
 
-    return times
+  # Inicia o servidor, 
+  # Aguarda a conexao de 4 clientes, 
+  # Inicia a sincronizacao 
+  def iniciar(self):
+    self.servidor = socket(AF_INET, SOCK_STREAM)
+    self.servidor.bind(self.addr)
+    self.servidor.listen()
 
-  def set_times(self, time):
-    request = 'set_time'
+    print(f"Aguardando {self.num_clientes} conexões...")
+    for i in range(self.num_clientes):
+      cliente_socket, addr = self.servidor.accept()
+      print(f'Cliente {addr} conectado.')
+      self.clientes.append((cliente_socket, addr))
+    self.iniciar_sincronizacao()
 
-    for client in self.clients:
-      conn, addr = client
-      conn.send(request.encode())
-      conn.recv(1024)
-      conn.send(time.encode())
 
-  def calc_time(self, times):
-    hour, minute, second = self.time
-    server_time = (int(hour) * 3600) + (int(minute) * 60) + int(second)
-    times_in_seconds = []
-    used_times = []
 
-    for time in times:
-      seconds = get_time_in_seconds(time)
-      times_in_seconds.append(seconds)
+  # Desconectar clientes e desligar servidor
+  def desconectar(self):
+    for cliente in self.clientes:
+      cliente_socket, addr = cliente
+      cliente_socket.close()
 
-    for time in times_in_seconds:
-      if(time <= server_time + 600 and time >= server_time - 600):
-        used_times.append(time)
+    self.servidor.close()
 
-    new_time = (np.sum(used_times) + server_time) / (len(times) + 1)
 
-    return seconds_to_time_string(new_time)
 
-  def listen(self):
+  # Retorna um array com todos os tempos dos clientes
+  def get_tempos(self):
+    requisicao = 'get_tempo'
+    tempos = []
+
+    for cliente in self.clientes:
+      cliente_socket, addr = cliente
+      cliente_socket.send(requisicao.encode())
+      resposta = cliente_socket.recv(1024).decode()
+      tempos.append(resposta)
+
+    return tempos
+
+
+
+  # Altera
+  def set_tempos(self, tempo):
+    requisicao = 'set_tempo'
+    
+    for cliente in self.clientes:
+      cliente_socket, self.addr = cliente
+      cliente_socket.send(requisicao.encode())
+      cliente_socket.recv(1024) # aqui onde recebo o sinal "pronto"
+      cliente_socket.send(tempo.encode())
+
+
+
+  def calcular_tempo(self, tempos):
+    print(tempos)
+    # Coleta o tempo do daemon
+    horas, minutos, segundos = self.tempo 
+    tempo_servidor = (int(horas) * 3600) + (int(minutos) * 60) + int(segundos)
+    tempos_em_segundos = []
+    tempos_usados = []
+
+    # Converte todos os tempos dos clientes em segundos
+    for tempo in tempos:
+      segundos = get_tempo_em_segundos(tempo)
+      tempos_em_segundos.append(segundos)
+
+    # Seleciona apenas tempos próximos ao horario do daemon (tolerancia de até 600 segundos)
+    for tempo in tempos_em_segundos:
+      if(tempo <= tempo_servidor + 600 and tempo >= tempo_servidor - 600):
+        tempos_usados.append(tempo)
+
+    # Calcula o novo tempo do servidor
+    novo_tempo = (np.sum(tempos_usados) + tempo_servidor) / (len(tempos) + 1)
+
+    # Retorna o tempo devidamente formatado
+    return get_segundos_em_tempo(novo_tempo)
+
+
+
+  def iniciar_sincronizacao(self):
     while(True):
-      print(f'server: {self.time}')
-      times = self.get_times()
-      print(f'clients: {times}')
-      new_time = self.calc_time(times)
-      self.set_times(new_time)
-      sleep(10)
-      self.sync_time()
+      print(f'servidor: {self.tempo}')
+      tempos = self.get_tempos()
+      print(f'clientes: {tempos}\n')
+      novo_tempo = self.calcular_tempo(tempos)
+      self.set_tempos(novo_tempo)
+      sleep(5)
+      self.sync_tempo()
+
+
 
 def main():
-  server = Server(num_clients=4)
+  servidor = Servidor(num_clientes=2)
 
   try:
-    server.start()
+    servidor.iniciar()
   except KeyboardInterrupt:
-    server.close()
+    servidor.desconectar()
   finally:
-    server.close()
+    servidor.desconectar()
 
-  server.close()
+  servidor.desconectar()
 
 if __name__ == '__main__':
   main()

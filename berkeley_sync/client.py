@@ -1,62 +1,89 @@
 import numpy as np
 from socket import socket, AF_INET, SOCK_STREAM
-from utils import format_time, get_current_time, get_time_in_seconds, seconds_to_time_string
-from data import ADDR
+from utils import tempo_string, get_tempo_atual, get_tempo_em_segundos, get_segundos_em_tempo
 
-class Client:
+
+
+class Cliente:
+  # Instancia com objeto socket e seu tempo atual
   def __init__(self):
-    self.client = None
-    h, m, s = get_current_time()
-    self.set_time(h, m, s)
+    self.addr = ('127.0.0.1', 7777)
+    self.cliente = None
+    h, m, s = get_tempo_atual()
+    self.set_tempo(h, m, s)
 
-  def connect(self):
-    self.client = socket(AF_INET, SOCK_STREAM)
-    self.client.connect(ADDR)
 
-  def disconnect(self):
-    self.client.close()
 
-  def get_time(self):
-    hour, minute, second = self.time
-    return f'{hour}:{minute}:{second}'
+  # Conectar cliente ao servidor 
+  def conectar(self):
+    print(f"Conectando em {self.addr}...")
+    self.cliente = socket(AF_INET, SOCK_STREAM)
+    self.cliente.connect(self.addr)
+    print("Conectado! Aguarde...")
 
-  def set_time(self, hour, minute, second):
-    self.time = (hour, minute, second)
 
-  def listen(self):
+
+  # Desconectar cliente
+  def desconectar(self):
+    self.cliente.close()
+
+
+
+  # Retorna o tempo em string
+  def get_tempo(self):
+    horas, minutos, segundos = self.tempo
+    return f'{horas}:{minutos}:{segundos}'
+
+
+
+  # Altera o tempo do cliente
+  def set_tempo(self, horas, minutos, segundos):
+    self.tempo = (horas, minutos, segundos)
+
+
+
+  # Inicia algoritmo de sincronizacao
+  def iniciar_sincronizacao(self):
     while(True):
-      response = self.client.recv(1024).decode()
+      # resposta do servidor, podendo ser um pedido get ou set de tempo
+      respostaServidor = self.cliente.recv(1024).decode()
 
-      if(response == 'get_time'):
-        self.client.send(self.get_time().encode())
-      elif(response == 'set_time'):
-        self.client.send('ready'.encode())
-        new_time = self.client.recv(1024).decode()
-        hour, minute, second = new_time.split(':')
-        old_time = get_time_in_seconds(self.get_time())
-        curr_time = get_time_in_seconds(new_time)
-        self.set_time(hour, minute, second)
-        diff = np.abs(curr_time - old_time)
+      # get_tempo: Envia o horario do cliente para o servidor
+      if(respostaServidor == 'get_tempo'):
+        self.cliente.send(self.get_tempo().encode())
+      
+      # set_tempo: atualiza o horario do cliente
+      elif(respostaServidor == 'set_tempo'):
+        self.cliente.send('ready'.encode())
 
-        print(f'Hora atual: {format_time((hour, minute, second))}')
+        novo_tempo = self.cliente.recv(1024).decode() # Recebe o novo tempo do servidor
+        horas, minutos, segundos = novo_tempo.split(':')
+        tempo_anterior = get_tempo_em_segundos(self.get_tempo())
+        tempo_atual = get_tempo_em_segundos(novo_tempo)
+        self.tempo = self.set_tempo(horas, minutos, segundos)
+        diferenca = np.abs(tempo_atual - tempo_anterior)
 
-        if (curr_time > old_time):
-          print(f'Seu relógio precisa ser adiantado em {seconds_to_time_string(diff)}')
-        elif (curr_time < old_time):
-          print(f'Seu relógio precisa ser atrasado em {seconds_to_time_string(diff)}')
+        print(f'tempo atual: {tempo_string((horas, minutos, segundos))}')
+
+        if (tempo_atual > tempo_anterior):
+          print(f'Adiante o seu relógio em {get_segundos_em_tempo(diferenca)}')
+        elif (tempo_atual < tempo_anterior):
+          print(f'Atrase o seu relógio em {get_segundos_em_tempo(diferenca)}')
         else:
-          print(f'Seu relógio está sincronizado')
+          print(f'Relógio sincronizado')
 
-        self.client.send(''.encode())
+        self.cliente.send(''.encode()) # envio vazio pra nao dar erro 
+
+
 
 def main():
-  client = Client()
+  cliente = Cliente()
 
   try:
-    client.connect()
-    client.listen()
+    cliente.conectar()
+    cliente.iniciar_sincronizacao()
   finally:
-    client.disconnect()
+    cliente.desconectar()
 
 if __name__ == '__main__':
   main()

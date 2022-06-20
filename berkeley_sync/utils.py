@@ -1,20 +1,20 @@
 from datetime import datetime
 
-def get_time_in_seconds(time):
-  hour, minute, second = time.split(':')
-  seconds = (int(hour) * 3600) + (int(minute) * 60) + int(second)
-  return seconds
+def get_tempo_em_segundos(tempo):
+  horas, minutos, segundos = tempo.split(':')
+  segundos = (int(horas) * 3600) + (int(minutos) * 60) + int(segundos)
+  return segundos
 
-def format_time(time):
-  h, m, s = time
+def tempo_string(tempo):
+  h, m, s = tempo
   return f'{h}:{m}:{s}'
 
-def get_current_time():
-  now = datetime.now()
-  return (now.hour, now.minute, now.second)
+def get_tempo_atual():
+  agora = datetime.now()
+  return [agora.hour, agora.minute, agora.second]
 
-def seconds_to_time_string(seconds):
-  s = seconds
+def get_segundos_em_tempo(segundos):
+  s = segundos
   h = int(s // 3600)
   s = s % 3600
   m = int(s // 60)
