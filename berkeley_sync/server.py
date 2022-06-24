@@ -114,7 +114,7 @@ class Servidor:
 
 
 def main():
-  servidor = Servidor(num_clientes=2)
+  servidor = Servidor(num_clientes=4)
 
   try:
     servidor.iniciar()
