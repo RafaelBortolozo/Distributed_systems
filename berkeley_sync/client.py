@@ -1,6 +1,6 @@
 import numpy as np
 from socket import socket, AF_INET, SOCK_STREAM
-from utils import tempo_string, get_tempo_atual, get_tempo_em_segundos, get_segundos_em_tempo
+from utils import *
 
 
 
@@ -9,8 +9,7 @@ class Cliente:
   def __init__(self):
     self.addr = ('127.0.0.1', 7777)
     self.cliente = None
-    h, m, s = get_tempo_atual()
-    self.set_tempo(h, m, s)
+    self.set_tempo(get_tempo_atual_em_segundos())
 
 
 
@@ -31,14 +30,14 @@ class Cliente:
 
   # Retorna o tempo em string
   def get_tempo(self):
-    horas, minutos, segundos = self.tempo
-    return f'{horas}:{minutos}:{segundos}'
+    (horas, minutos, segundos) = self.tempo
+    return get_segundos_em_tempo()
 
 
 
   # Altera o tempo do cliente
-  def set_tempo(self, horas, minutos, segundos):
-    self.tempo = (horas, minutos, segundos)
+  def set_tempo(self, tempo_segundos):
+    self.tempo_segundos = tempo_segundos
 
 
 

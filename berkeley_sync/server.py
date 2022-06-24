@@ -1,6 +1,6 @@
 import numpy as np
 from socket import socket, AF_INET, SOCK_STREAM
-from utils import get_tempo_atual, get_tempo_em_segundos, get_segundos_em_tempo
+from utils import *
 from time import sleep
 
 
@@ -11,13 +11,14 @@ class Servidor:
     self.num_clientes = num_clientes
     self.clientes = []
     self.servidor = None
-    self.sync_tempo()
+    self.tempo_adicional = get_tempo_aleatorio()
+    self.sync_tempo(self.tempo_adicional)
 
 
 
   # Pega o tempo atual do daemon
-  def sync_tempo(self):
-    self.tempo = get_tempo_atual()
+  def sync_tempo(self, tempo_adicional):
+    self.tempo = get_tempo_atual_em_segundos() + tempo_adicional
 
 
 
@@ -108,13 +109,14 @@ class Servidor:
       print(f'clientes: {tempos}\n')
       novo_tempo = self.calcular_tempo(tempos)
       self.set_tempos(novo_tempo)
+      self.sync_tempo(0)
       sleep(5)
-      self.sync_tempo()
+      
 
 
 
 def main():
-  servidor = Servidor(num_clientes=4)
+  servidor = Servidor(num_clientes=2)
 
   try:
     servidor.iniciar()
