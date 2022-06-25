@@ -9,7 +9,8 @@ class Cliente:
   def __init__(self):
     self.addr = ('127.0.0.1', 7777)
     self.cliente = None
-    self.set_tempo(get_tempo_atual_em_segundos(), get_tempo_aleatorio())
+    self.tempo_acumulado = 0
+    self.set_tempo()
 
 
 
@@ -28,46 +29,45 @@ class Cliente:
 
 
 
-  # Retorna o tempo em string
-  def get_tempo(self):
-    return self.tempo
-
-
-
   # Altera o tempo do cliente
-  def set_tempo(self, tempo, tempo_adicional=0):
-    self.tempo = tempo + tempo_adicional
+  def set_tempo(self):
+    self.tempo = get_tempo_atual_em_segundos() + self.tempo_acumulado
 
 
 
   # Inicia algoritmo de sincronizacao
   def iniciar_sincronizacao(self):
+    tempo_servidor = None
+    tempo_adicional = None
     while(True):
-      # resposta do servidor, podendo ser um pedido get ou set de tempo
-      respostaServidor = self.cliente.recv(1024).decode()
+      resposta_servidor = str(self.cliente.recv(1024).decode())
+
+      # send_tempo_servidor: Recebe o horario do servidor 
+      if(resposta_servidor == 'send_tempo_servidor'):
+        tempo_servidor = int(self.cliente.recv(1024).decode())
+      
+      # get_diferenca_tempo: Envia a diferenca de tempo em relacao com o servidor
+      if(resposta_servidor == 'get_diferenca_tempo'):
+        tempo_diferenca = get_diferenca_tempo(self.tempo, tempo_servidor)
+        self.cliente.send(str(tempo_diferenca).encode())
 
       # get_tempo: Envia o horario do cliente para o servidor
-      if(respostaServidor == 'get_tempo'):
-        tempo_atual = str(self.get_tempo())
+      elif(resposta_servidor == 'get_tempo'):
+        tempo_atual = str(self.tempo)
         self.cliente.send(tempo_atual.encode())
       
-      # set_tempo: atualiza o horario do cliente
-      elif(respostaServidor == 'set_tempo'):
-        #self.cliente.send('ready'.encode())
-        novo_tempo = int(self.cliente.recv(1024).decode()) # Recebe o novo tempo do servidor
+      # set_tempo: Atualiza o horario do cliente com o adicional de tempo
+      elif(resposta_servidor == 'set_tempo'):
+        tempo_adicional = int(self.cliente.recv(1024).decode())
+        self.tempo_acumulado += tempo_adicional
         tempo_anterior = self.tempo
-        self.set_tempo(novo_tempo)
-        diferenca = int(np.abs(novo_tempo - tempo_anterior))
+        self.set_tempo()
+        diferenca = get_diferenca_tempo(self.tempo, tempo_anterior)
 
-        print(f'\ntempo atual: {get_tempo_string(get_segundos_em_tempo(novo_tempo))}')
-
-        diferenca_tempo = get_tempo_string(get_segundos_em_tempo(diferenca))
-        if (novo_tempo-1 > tempo_anterior):
-          print(f'Teu relógio deve ser adiantado em {diferenca_tempo}')
-        elif (novo_tempo-1 < tempo_anterior):
-          print(f'Teu relógio deve ser atrasado em {diferenca_tempo}')
-        else:
-          print(f'Relógio sincronizado')
+        if (diferenca-1 == 0):
+          print(f'\ntempo atual: {get_tempo_string(get_segundos_em_tempo(self.tempo))} (sincronizado)')
+        else: 
+          print(f'\ntempo atual: {get_tempo_string(get_segundos_em_tempo(self.tempo))} (dessincronizado)')
 
         self.cliente.send(''.encode()) # envio vazio pra nao dar erro 
 

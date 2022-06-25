@@ -11,13 +11,14 @@ class Servidor:
     self.num_clientes = num_clientes
     self.clientes = []
     self.servidor = None
+    self.tempo_acumulado = 0
     self.tempo = get_tempo_atual_em_segundos()
 
 
 
-  # Pega o tempo atual do daemon
-  def set_tempo_servidor(self, tempo_adicional=0):
-    self.tempo = get_tempo_atual_em_segundos() + tempo_adicional
+  # Pega o tempo atual do daemon, considerando o tempo de correcao
+  def set_tempo_servidor(self):
+    self.tempo = get_tempo_atual_em_segundos() + self.tempo_acumulado
 
 
 
@@ -61,38 +62,59 @@ class Servidor:
 
     return tempos
 
+  # Envia o tempo do servidor aos clientes
+  def send_tempo_servidor(self):
+    requisicao = 'send_tempo_servidor'
+
+    for cliente in self.clientes:
+      cliente_socket, addr = cliente
+      cliente_socket.send(requisicao.encode())
+      cliente_socket.send(str(self.tempo).encode())
 
 
-  # Envia o novo tempo do servidor pra todos os clientes
-  def set_tempo_clientes(self, tempo):
+
+  # Pega a diferenca de tempo entre servidor e clientes
+  def get_diferenca_tempos(self):
+    requisicao = 'get_diferenca_tempo'
+    diferencas = []
+
+    for cliente in self.clientes:
+      cliente_socket, addr = cliente
+      cliente_socket.send(requisicao.encode())
+      resposta = int(cliente_socket.recv(1024).decode())
+      diferencas.append(resposta)
+
+    return diferencas
+
+
+  # Tempo dos clientes é atualizado usando o tempo adicional
+  def set_tempo_clientes(self, diferencas):
     requisicao = 'set_tempo'
     
-    for cliente in self.clientes:
+    for cliente, tempo_adicional in zip(self.clientes, diferencas):
       cliente_socket, self.addr = cliente
       cliente_socket.send(requisicao.encode())
-      cliente_socket.send(str(tempo).encode())
+      cliente_socket.send(str(tempo_adicional).encode())
 
 
 
-  def calcular_tempo(self, tempos_clientes):
+  def calcular_tempo_adicional(self, diferencas):
     # Coleta o tempo do daemon
-    tempo_servidor = self.tempo 
-    tempos_clientes_validos = []
+    diferencas_validas = []
 
     # Seleciona apenas tempos próximos ao horario do daemon (tolerancia de até 600 segundos)
     # Será salvo as diferencas de tempo com relacao ao daemon
-    for tempo_cliente in tempos_clientes:
-      if(tempo_cliente <= tempo_servidor + 600 and tempo_cliente >= tempo_servidor - 600):
-        diferenca = get_diferenca_tempo(tempo_servidor, tempo_cliente)
-        tempos_clientes_validos.append(diferenca)
+    for diferenca in diferencas:
+      if(diferenca < 600 and diferenca >= -600):
+        diferencas_validas.append(diferenca)
+      else: 
+        diferencas_validas.append(0)
 
-
-
-    # Calcula o adicional de tempo para o servidor
-    novo_tempo = round((np.sum(tempos_clientes_validos)) / (len(tempos_clientes) + 1))
+    # Calcula a media
+    tempo_adicional = round((np.sum(diferencas_validas)) / (len(diferencas) + 1))
 
     # Retorna o tempo 
-    return novo_tempo
+    return tempo_adicional
 
 
 
@@ -108,19 +130,48 @@ class Servidor:
 
 
   def iniciar_sincronizacao(self):
+    # inverte o sinal dos numeros
+    def convert(lst):
+      return [ -i for i in lst]
+
+    # incrementa um tempo em toda a lista
+    def add_tempo_adicional(lst, tempo_adicional):
+      return [ i+tempo_adicional for i in lst]
+
     while(True):
-      print(f'Servidor: {get_tempo_string(get_segundos_em_tempo(self.tempo))}') 
+      # imprime os horarios antes da sincronizacao
       tempos_clientes = self.get_tempos()
       tempos_clientes_string = self.get_tempos_clientes_string(tempos_clientes)
-      print(f'clientes: {tempos_clientes_string}\n')
-      tempo_adicional = self.calcular_tempo(tempos_clientes)
-      self.set_tempo_servidor(tempo_adicional)
-      self.set_tempo_clientes(self.tempo)
-      sleep(1)
+      print(f'\nServidor: {get_tempo_string(get_segundos_em_tempo(self.tempo))}') 
+      print(f'clientes: {tempos_clientes_string}')
+      sleep(0.95)
       
+      # Enviar tempo do servidor aos clientes
+      self.send_tempo_servidor()
+      sleep(0.01)
+
+      # Receba a diferença de tempo dos clientes em relacao ao servidor
+      diferencas = self.get_diferenca_tempos()
+      sleep(0.01)
+
+      # Calcula a media dessas diferencas
+      tempo_adicional = self.calcular_tempo_adicional(diferencas)
+      sleep(0.01)
+
+      # Atualiza o tempo do servidor com o tempo_adicional
+      self.tempo_acumulado += tempo_adicional
+      self.set_tempo_servidor()
+      sleep(0.01)
+
+      # Atualiza os clientes, enviando a respectiva diferenca 
+      # de tempo de forma que todos fiquem sincronizados
+      diferencas = convert(diferencas)
+      diferencas = add_tempo_adicional(diferencas, tempo_adicional)
+      self.set_tempo_clientes(diferencas)
+      sleep(0.01)
       
-
-
+           
+    
 def main():
   servidor = Servidor(num_clientes=4)
 
