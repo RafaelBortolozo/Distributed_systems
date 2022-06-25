@@ -9,7 +9,7 @@ class Cliente:
   def __init__(self):
     self.addr = ('127.0.0.1', 7777)
     self.cliente = None
-    self.set_tempo(get_tempo_atual_em_segundos())
+    self.set_tempo(get_tempo_atual_em_segundos(), get_tempo_aleatorio())
 
 
 
@@ -18,7 +18,7 @@ class Cliente:
     print(f"Conectando em {self.addr}...")
     self.cliente = socket(AF_INET, SOCK_STREAM)
     self.cliente.connect(self.addr)
-    print("Conectado! Aguarde...")
+    print("Conectado! Aguarde...\n")
 
 
 
@@ -30,14 +30,13 @@ class Cliente:
 
   # Retorna o tempo em string
   def get_tempo(self):
-    (horas, minutos, segundos) = self.tempo
-    return get_segundos_em_tempo()
+    return self.tempo
 
 
 
   # Altera o tempo do cliente
-  def set_tempo(self, tempo_segundos):
-    self.tempo_segundos = tempo_segundos
+  def set_tempo(self, tempo, tempo_adicional=0):
+    self.tempo = tempo + tempo_adicional
 
 
 
@@ -49,25 +48,24 @@ class Cliente:
 
       # get_tempo: Envia o horario do cliente para o servidor
       if(respostaServidor == 'get_tempo'):
-        self.cliente.send(self.get_tempo().encode())
+        tempo_atual = str(self.get_tempo())
+        self.cliente.send(tempo_atual.encode())
       
       # set_tempo: atualiza o horario do cliente
       elif(respostaServidor == 'set_tempo'):
-        self.cliente.send('ready'.encode())
+        #self.cliente.send('ready'.encode())
+        novo_tempo = int(self.cliente.recv(1024).decode()) # Recebe o novo tempo do servidor
+        tempo_anterior = self.tempo
+        self.set_tempo(novo_tempo)
+        diferenca = int(np.abs(novo_tempo - tempo_anterior))
 
-        novo_tempo = self.cliente.recv(1024).decode() # Recebe o novo tempo do servidor
-        horas, minutos, segundos = novo_tempo.split(':')
-        tempo_anterior = get_tempo_em_segundos(self.get_tempo())
-        tempo_atual = get_tempo_em_segundos(novo_tempo)
-        self.tempo = self.set_tempo(horas, minutos, segundos)
-        diferenca = np.abs(tempo_atual - tempo_anterior)
+        print(f'\ntempo atual: {get_tempo_string(get_segundos_em_tempo(novo_tempo))}')
 
-        print(f'tempo atual: {tempo_string((horas, minutos, segundos))}')
-
-        if (tempo_atual > tempo_anterior):
-          print(f'Adiante o seu relógio em {get_segundos_em_tempo(diferenca)}')
-        elif (tempo_atual < tempo_anterior):
-          print(f'Atrase o seu relógio em {get_segundos_em_tempo(diferenca)}')
+        diferenca_tempo = get_tempo_string(get_segundos_em_tempo(diferenca))
+        if (novo_tempo-1 > tempo_anterior):
+          print(f'Teu relógio deve ser adiantado em {diferenca_tempo}')
+        elif (novo_tempo-1 < tempo_anterior):
+          print(f'Teu relógio deve ser atrasado em {diferenca_tempo}')
         else:
           print(f'Relógio sincronizado')
 

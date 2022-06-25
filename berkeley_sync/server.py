@@ -11,13 +11,12 @@ class Servidor:
     self.num_clientes = num_clientes
     self.clientes = []
     self.servidor = None
-    self.tempo_adicional = get_tempo_aleatorio()
-    self.sync_tempo(self.tempo_adicional)
+    self.tempo = get_tempo_atual_em_segundos()
 
 
 
   # Pega o tempo atual do daemon
-  def sync_tempo(self, tempo_adicional):
+  def set_tempo_servidor(self, tempo_adicional=0):
     self.tempo = get_tempo_atual_em_segundos() + tempo_adicional
 
 
@@ -57,66 +56,73 @@ class Servidor:
     for cliente in self.clientes:
       cliente_socket, addr = cliente
       cliente_socket.send(requisicao.encode())
-      resposta = cliente_socket.recv(1024).decode()
+      resposta = int(cliente_socket.recv(1024).decode())
       tempos.append(resposta)
 
     return tempos
 
 
 
-  # Altera
-  def set_tempos(self, tempo):
+  # Envia o novo tempo do servidor pra todos os clientes
+  def set_tempo_clientes(self, tempo):
     requisicao = 'set_tempo'
     
     for cliente in self.clientes:
       cliente_socket, self.addr = cliente
       cliente_socket.send(requisicao.encode())
-      cliente_socket.recv(1024) # aqui onde recebo o sinal "pronto"
-      cliente_socket.send(tempo.encode())
+      cliente_socket.send(str(tempo).encode())
 
 
 
-  def calcular_tempo(self, tempos):
-    print(tempos)
+  def calcular_tempo(self, tempos_clientes):
     # Coleta o tempo do daemon
-    horas, minutos, segundos = self.tempo 
-    tempo_servidor = (int(horas) * 3600) + (int(minutos) * 60) + int(segundos)
-    tempos_em_segundos = []
-    tempos_usados = []
-
-    # Converte todos os tempos dos clientes em segundos
-    for tempo in tempos:
-      segundos = get_tempo_em_segundos(tempo)
-      tempos_em_segundos.append(segundos)
+    tempo_servidor = self.tempo 
+    tempos_clientes_validos = []
 
     # Seleciona apenas tempos próximos ao horario do daemon (tolerancia de até 600 segundos)
-    for tempo in tempos_em_segundos:
-      if(tempo <= tempo_servidor + 600 and tempo >= tempo_servidor - 600):
-        tempos_usados.append(tempo)
+    # Será salvo as diferencas de tempo com relacao ao daemon
+    for tempo_cliente in tempos_clientes:
+      if(tempo_cliente <= tempo_servidor + 600 and tempo_cliente >= tempo_servidor - 600):
+        diferenca = get_diferenca_tempo(tempo_servidor, tempo_cliente)
+        tempos_clientes_validos.append(diferenca)
 
-    # Calcula o novo tempo do servidor
-    novo_tempo = (np.sum(tempos_usados) + tempo_servidor) / (len(tempos) + 1)
 
-    # Retorna o tempo devidamente formatado
-    return get_segundos_em_tempo(novo_tempo)
+
+    # Calcula o adicional de tempo para o servidor
+    novo_tempo = round((np.sum(tempos_clientes_validos)) / (len(tempos_clientes) + 1))
+
+    # Retorna o tempo 
+    return novo_tempo
+
+
+
+  def get_tempos_clientes_string(self, tempos):
+    aux = ""
+    for index, tempo in enumerate(tempos):
+      if index == len(tempos)-1:
+        aux += "{}".format(get_tempo_string(get_segundos_em_tempo(tempo)))
+      else:
+        aux += "{} | ".format(get_tempo_string(get_segundos_em_tempo(tempo)))
+    return aux
 
 
 
   def iniciar_sincronizacao(self):
     while(True):
-      print(f'servidor: {self.tempo}')
-      tempos = self.get_tempos()
-      print(f'clientes: {tempos}\n')
-      novo_tempo = self.calcular_tempo(tempos)
-      self.set_tempos(novo_tempo)
-      self.sync_tempo(0)
-      sleep(5)
+      print(f'Servidor: {get_tempo_string(get_segundos_em_tempo(self.tempo))}') 
+      tempos_clientes = self.get_tempos()
+      tempos_clientes_string = self.get_tempos_clientes_string(tempos_clientes)
+      print(f'clientes: {tempos_clientes_string}\n')
+      tempo_adicional = self.calcular_tempo(tempos_clientes)
+      self.set_tempo_servidor(tempo_adicional)
+      self.set_tempo_clientes(self.tempo)
+      sleep(1)
+      
       
 
 
-
 def main():
-  servidor = Servidor(num_clientes=2)
+  servidor = Servidor(num_clientes=4)
 
   try:
     servidor.iniciar()
