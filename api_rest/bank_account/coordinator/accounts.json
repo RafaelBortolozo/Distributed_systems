@@ -1,0 +1,16 @@
+{
+  "accounts": [
+    {
+      "numberAccount" : 1234,
+      "balance" : 100.00
+    },
+    {
+      "numberAccount" : 4345,
+      "balance" : 50.00
+    },
+    {
+      "numberAccount" : 5678,
+      "balance" : 250.00
+    }
+  ]
+}
