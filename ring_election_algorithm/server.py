@@ -2,10 +2,8 @@ import Pyro4
 import io
 import random
 
-from sqlalchemy import null, true
-
 @Pyro4.expose
-class Quiz(object):
+class Ring_election(object):
     def __init__(self):
         self.randomQuestions = 0
         self.clientCorrectAnswers = 0

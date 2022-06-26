@@ -33,6 +33,6 @@ def answerQuiz():
     os.system('clear')
     print(result)
 
-quiz = Pyro4.Proxy("PYRONAME:quiz")
+quiz = Pyro4.Proxy("PYRONAME:ring_election")
 clientLogin()
 answerQuiz()
