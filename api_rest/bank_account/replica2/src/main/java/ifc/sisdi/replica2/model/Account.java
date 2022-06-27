@@ -1,4 +1,4 @@
-package ifc.sisdi.coordinator.model;
+package ifc.sisdi.replica2.model;
 
 public class Account {
     private int numberAccount;

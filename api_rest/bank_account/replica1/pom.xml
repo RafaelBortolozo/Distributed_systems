@@ -12,7 +12,7 @@
 	<artifactId>replica1</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>replica1</name>
-	<description>bank 2PC - replica2</description>
+	<description>bank 2PC - replica1</description>
 	<properties>
 		<java.version>18</java.version>
 	</properties>

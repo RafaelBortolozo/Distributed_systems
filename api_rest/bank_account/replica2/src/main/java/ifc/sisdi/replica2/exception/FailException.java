@@ -1,8 +1,8 @@
-package ifc.sisdi.coordinator.exception;
+package ifc.sisdi.replica2.exception;
 
 @SuppressWarnings("serial")
 public class FailException extends RuntimeException {
     public FailException () {
-        super("2PC Coordinator error");
+        super("NO");
     }
 }
