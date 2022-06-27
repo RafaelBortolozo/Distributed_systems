@@ -76,7 +76,7 @@ public class CoordinatorController {
 				data.put("account", action.getAccount());
 				data.put("value", action.getValue());
 
-				// Envio dos logs contendo a acao para as replicas
+				// Envio do log contendo a acao para as replicas
 				// As replicas validam as acoes e retornam status de sucesso
 				// ou retornam erro em caso de fracasso, quebrando a acao para todos os hosts
 				for (Replica replica : this.replicas) {
