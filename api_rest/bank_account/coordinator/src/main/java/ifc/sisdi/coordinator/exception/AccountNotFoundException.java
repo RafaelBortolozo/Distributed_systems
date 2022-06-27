@@ -1,8 +1,8 @@
 package ifc.sisdi.coordinator.exception;
 
+@SuppressWarnings("serial")
 public class AccountNotFoundException extends RuntimeException{
-	
-	public AccountNotFoundException(int id) {
-		super("Não foi possı́vel encontrar pessoa com o id: " + id);
+	public AccountNotFoundException() {
+		super("Não foi possı́vel encontrar conta");
 	}
 }
