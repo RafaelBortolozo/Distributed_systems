@@ -12,7 +12,7 @@ Repositório para armazenar trabalhos desenvolvidos durante a disciplina de Sist
 
 - <a href="https://github.com/RafaelBortolozo/Distributed_systems/tree/main/rmi/quiz">Quiz usando RMI (Python)</a>
 
-- <a href="https://github.com/RafaelBortolozo/Distributed_systems/tree/main/ring_election_algorithm">Sincronização de Relógios usando Socket (Python)</a>
+- <a href="https://github.com/RafaelBortolozo/Distributed_systems/tree/main/berkeley_algorithm">Sincronização de Relógios usando Socket (Python)</a>
 
 - <a href="#">Eleição em anel (Python)</a>
 
