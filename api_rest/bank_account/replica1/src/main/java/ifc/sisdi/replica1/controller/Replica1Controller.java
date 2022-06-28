@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Random;
 
 @RestController
@@ -23,35 +24,51 @@ public class Replica1Controller {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.OK)
-	public Action sendAction(Action action) {
+	public int sendAction(Action action) {
 		this.logs.add(action);
-
 
 		// 70% de chance de sucesso
 		Random r = new Random();
 		int error = r.nextInt(10) + 1; // 1-10
+		System.out.println("ALEATORIO: " + error);
 		if (error > 7) {
 			throw new FailException();
 		}
 
-		// Se a conta da requisicao bater com alguma conta da memoria
-		// entao executa a operacao naquela conta (alteracao feita na replica)
-		for (Account account : this.accounts) {
-			if (account.getNumberAccount() == action.getAccount()) {
-				switch (action.getOperation()) {
-					case "debit":
-						account.setBalance(account.getBalance() - action.getValue());
-						System.out.println("New balance: " + account.getBalance());
-						break;
-					case "credit":
-						account.setBalance(account.getBalance() + action.getValue());
-						System.out.println("New balance: " + account.getBalance());
-						break;
+		return error;
+	}
+
+	@PutMapping
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public void sendDecision(Map<String, String> decision){
+
+		// Elimina a operacao bancaria
+		if(decision.get("command").equals("abort")){
+			for (Action action : this.logs){
+				if (action.getId().equals(decision.get("id"))) this.logs.remove(action);
+				return;
+			}
+		}
+
+		// Executa a operacao bancaria
+		for (Action action : this.logs){
+			if (decision.get("id").equals(action.getId())) {
+				for (Account account : this.accounts) {
+					if (account.getNumberAccount() == action.getAccount()) {
+						switch (action.getOperation()) {
+							case "debit":
+								account.setBalance(account.getBalance() - action.getValue());
+								break;
+							case "credit":
+								account.setBalance(account.getBalance() + action.getValue());
+								break;
+						}
+					}
 				}
 			}
 		}
-		return action;
 	}
+
 
 	// Retorna voto "NO" em caso de erro
 	@ControllerAdvice

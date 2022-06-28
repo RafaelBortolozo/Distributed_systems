@@ -2,10 +2,11 @@ package ifc.sisdi.coordinator.controller;
 
 import ifc.sisdi.coordinator.exception.AccountNotFoundException;
 import ifc.sisdi.coordinator.exception.FailException;
+import ifc.sisdi.coordinator.exception.MessageException;
 import ifc.sisdi.coordinator.model.Account;
 import ifc.sisdi.coordinator.model.Action;
+import ifc.sisdi.coordinator.model.Decision;
 import ifc.sisdi.coordinator.model.Replica;
-import org.apache.catalina.startup.FailedContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,10 +17,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
@@ -28,6 +26,7 @@ public class CoordinatorController {
 	private ArrayList<Account> accounts = new ArrayList<Account>();
 	private ArrayList<Action> logs  = new ArrayList<Action>();
 	private ArrayList<Replica> replicas = new ArrayList<Replica>();
+	private ArrayList<Decision> decisions = new ArrayList<Decision>();
 	HttpClient client = HttpClient.newHttpClient();
 
 	public CoordinatorController() {
@@ -52,10 +51,12 @@ public class CoordinatorController {
 		return this.replicas;
 	}
 
-	// Construcao, envio, validacao e execucao das acoes
+	// Etapa de envio de uma acao para as replicas e retornar os votos
 	@PostMapping("/accounts")
 	@ResponseStatus(HttpStatus.CREATED)
-	public Action sendAction(@RequestBody Action action) throws IOException, InterruptedException {
+	public void sendAction(@RequestBody Action action) throws IOException, InterruptedException {
+		ArrayList<Boolean> votes = new ArrayList<Boolean>();
+		votes.clear();
 
 		// Se existir uma conta com aquele numero...
 		for (Account account : this.accounts) {
@@ -68,7 +69,7 @@ public class CoordinatorController {
 
 				logs.add(action);
 
-				// Montagem do objeto para criacao da requisicao
+				// Montagem do objeto para envio da acao
 				Map<Object, Object> data = new HashMap<>();
 
 				data.put("id", action.getId());
@@ -77,34 +78,107 @@ public class CoordinatorController {
 				data.put("value", action.getValue());
 
 				// Envio do log contendo a acao para as replicas
-				// As replicas validam as acoes e retornam status de sucesso
-				// ou retornam erro em caso de fracasso, quebrando a acao para todos os hosts
+				// As replicas registram a acao e retornam um status
 				for (Replica replica : this.replicas) {
 					HttpRequest request = HttpRequest.newBuilder().POST(buildFormDataFromMap(data))
 							.uri(URI.create(replica.getEndpoint())).build();
 					HttpResponse<String> response = this.client.send(request, HttpResponse.BodyHandlers.ofString());
 					if (response.statusCode() == 403) {
+						System.out.println("VOTEI NAO");
+						// status: 403 - FORBIDDEN
+						votes.add(false);
+					}else{
+						System.out.println("VOTEI SIM");
+						// status: 201 - CREATED
+						votes.add(true);
+					}
+				}
+
+				// Verifica os votos e registra a decisao como FALSE ou TRUE
+				int count = 0;
+				System.out.println("TAMANHO: " + votes.size());
+				for (boolean vote : votes) {
+					if (vote){
+						count++;
+					}
+				}
+				if (count == votes.size()) {
+					this.decisions.add(new Decision(action.getId(), true));
+					System.out.print("NOVA ACAO VALIDA: " + action.getId());
+				} else {
+					this.decisions.add(new Decision(action.getId(), false));
+					System.out.print("NOVA ACAO INVALIDA: " + action.getId());
+				}
+				return;
+			}
+		}
+		// Conta nao encontrada
+		throw new AccountNotFoundException(action.getAccount());
+	}
+
+	// Etapa de envio do id de uma acao para as replicas
+	// Executar ou abortar a acao
+	@PutMapping("/accounts")
+	@ResponseStatus(HttpStatus.CREATED)
+	public void sendDecision(@RequestBody String id) throws IOException, InterruptedException {
+		Map<Object, Object> data = new HashMap<>();
+
+		// Se existir uma acao com o mesmo id informado...
+		for (Action action : this.logs) {
+			if (action.getId().equals(id)) {
+
+				// Se a decisao da acao for TRUE, entao executa a acao
+				for (Decision decision : this.decisions){
+					if (decision.isDecision()){
+
+						// Executa a acao no coordenador
+						for (Account account : accounts){
+							if(account.getNumberAccount() == action.getAccount()){
+								switch (action.getOperation()) {
+									case "debit":
+										account.setBalance(account.getBalance() - action.getValue());
+										break;
+									case "credit":
+										account.setBalance(account.getBalance() + action.getValue());
+										break;
+								}
+
+								// Monta o objeto que sera enviado para as replicas
+								data.put("id", decision.getId());
+								data.put("command", "commit");
+
+								// Apague a decisao
+								this.decisions.remove(decision);
+
+							}
+						}
+					// Se a decisao da acao for FALSE, entao descarta a acao
+					} else {
+						// Monta o objeto que sera enviado para as replicas
+						data.put("id", decision.getId());
+						data.put("command", "abort");
+					}
+				}
+
+				// Remove a acao do coordenador (Pra evitar repeticoes de transacao)
+				// Envia o objeto para as replicas
+				// Salvar transações em um arquivo se for necessário.
+				this.logs.remove(action);
+				for (Replica replica : this.replicas) {
+					HttpRequest request = HttpRequest.newBuilder().PUT(buildFormDataFromMap(data))
+							.uri(URI.create(replica.getEndpoint())).build();
+					HttpResponse<String> response = this.client.send(request, HttpResponse.BodyHandlers.ofString());
+					if (response.statusCode() == 404) {
 						throw new FailException();
 					}
 				}
 
-				// Executa a acao no coordenador (falta impedir saldo negativo)
-				switch (action.getOperation()) {
-					case "debit":
-						account.setBalance(account.getBalance() - action.getValue());
-						break;
-					case "credit":
-						account.setBalance(account.getBalance() + action.getValue());
-						break;
-				}
-
-				// por fim, remove o log (n sei se é pra remover ou manter na memória)
-				logs.remove(action);
-
-				return action;
+				return;
 			}
 		}
-		throw new AccountNotFoundException(action.getAccount());
+		// Se a acao nao existir, entao retorna um status 400 - BAD REQUEST
+		throw new FailException();
+
 	}
 
 	// Construcao daquele trecho de parametros da URL de uma requisicao GET
@@ -122,17 +196,27 @@ public class CoordinatorController {
 			builder.append(URLEncoder.encode(entry.getValue().toString(), StandardCharsets.UTF_8));
 		}
 		System.out.println("URL_PARAMETROS: " + builder.toString());
-		System.out.println("RESULTADO DUVIDOSO: " + HttpRequest.BodyPublishers.ofString(builder.toString()));
 		return HttpRequest.BodyPublishers.ofString(builder.toString());
 	}
 
-	// Funcao de erro, executada caso uma das replicas retornam status 4**
+
+//	@ControllerAdvice
+//	class MessageExcept {
+//		@ResponseBody
+//		@ExceptionHandler(MessageException.class)
+//		@ResponseStatus(HttpStatus.FORBIDDEN)
+//		String e(MessageException e) {
+//			return e.getMessage();
+//		}
+//	}
+
+// Funcao de erro, executada caso uma das replicas retornam status 4**
 	@ControllerAdvice
 	class Fail {
 		@ResponseBody
 		@ExceptionHandler(FailException.class)
 		@ResponseStatus(HttpStatus.FORBIDDEN)
-		String fail(FailException e) {
+		String e(FailException e) {
 			return e.getMessage();
 		}
 	}
