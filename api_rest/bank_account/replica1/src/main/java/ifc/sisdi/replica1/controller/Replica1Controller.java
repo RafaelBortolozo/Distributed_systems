@@ -4,17 +4,18 @@ import ifc.sisdi.replica1.exception.FailException;
 import ifc.sisdi.replica1.model.Account;
 import ifc.sisdi.replica1.model.Action;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.Random;
 
 @RestController
 @RequestMapping("/accounts")
 public class Replica1Controller {
 	private ArrayList<Account> accounts = new ArrayList<Account>();
-	private ArrayList<Action> logs  = new ArrayList<Action>();
+	private ArrayList<Action> actions  = new ArrayList<Action>();
 
 	public Replica1Controller() {
 		this.accounts.add(new Account(1234, 100.00));
@@ -22,37 +23,26 @@ public class Replica1Controller {
 		this.accounts.add(new Account(5678, 250.00));
 	}
 
-	@PostMapping()
-	@ResponseStatus(HttpStatus.OK)
-	public boolean sendAction(Action action) {
-		this.logs.add(action);
+	@PostMapping
+	public ResponseEntity<Object> sendAction(Action action) throws IOException, InterruptedException {
+		this.actions.add(action);
 
 		// 70% de chance de sucesso
 		Random r = new Random();
 		int error = r.nextInt(10) + 1; // 1-10
-		System.out.println("ALEATORIO: " + error);
 		if (error > 7) {
-			return false;
+			return ResponseEntity.status(HttpStatus.OK).body(false);
 		}
 
-		return true;
+		return ResponseEntity.status(HttpStatus.OK).body(true);
 	}
 
+	// Executa a operacao bancaria
 	@PutMapping
 	@ResponseStatus(HttpStatus.OK)
-	public void sendDecision(Map<String, String> decision){
-
-		// Elimina a operacao bancaria
-		if(decision.get("command").equals("abort")){
-			for (Action action : this.logs){
-				if (action.getId().equals(decision.get("id"))) this.logs.remove(action);
-				throw new FailException();
-			}
-		}
-
-		// Executa a operacao bancaria
-		for (Action action : this.logs){
-			if (decision.get("id").equals(action.getId())) {
+	public void commit(@PathVariable String id) throws IOException, InterruptedException {
+		for (Action action : this.actions){
+			if (id.equals(action.getId())) {
 				for (Account account : this.accounts) {
 					if (account.getNumberAccount() == action.getAccount()) {
 						switch (action.getOperation()) {
@@ -68,6 +58,16 @@ public class Replica1Controller {
 			}
 		}
 	}
+
+	// Elimina a operacao bancaria
+	@DeleteMapping
+	@ResponseStatus(HttpStatus.OK)
+	public void rollback(String id) throws IOException, InterruptedException {
+		for (Action action : this.actions){
+			if (action.getId().equals(id)) this.actions.remove(action);
+		}
+	}
+
 
 
 	// Retorna voto "NO" em caso de erro
