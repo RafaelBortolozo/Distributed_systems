@@ -87,11 +87,13 @@ public class CoordinatorController {
 						System.out.println("VOTEI NAO");
 						// status: 403 - FORBIDDEN
 						votes.add(false);
-					}else{
+					}if(response.statusCode() == 200){
 						System.out.println("VOTEI SIM");
 						// status: 201 - CREATED
 						votes.add(true);
 					}
+
+					System.out.println("RESPOSTA: " + response);
 				}
 
 				// Verifica os votos e registra a decisao como FALSE ou TRUE

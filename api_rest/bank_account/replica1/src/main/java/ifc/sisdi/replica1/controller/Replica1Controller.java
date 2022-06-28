@@ -22,9 +22,9 @@ public class Replica1Controller {
 		this.accounts.add(new Account(5678, 250.00));
 	}
 
-	@PostMapping
+	@PostMapping()
 	@ResponseStatus(HttpStatus.OK)
-	public int sendAction(Action action) {
+	public boolean sendAction(Action action) {
 		this.logs.add(action);
 
 		// 70% de chance de sucesso
@@ -32,21 +32,21 @@ public class Replica1Controller {
 		int error = r.nextInt(10) + 1; // 1-10
 		System.out.println("ALEATORIO: " + error);
 		if (error > 7) {
-			throw new FailException();
+			return false;
 		}
 
-		return error;
+		return true;
 	}
 
 	@PutMapping
-	@ResponseStatus(HttpStatus.NOT_FOUND)
+	@ResponseStatus(HttpStatus.OK)
 	public void sendDecision(Map<String, String> decision){
 
 		// Elimina a operacao bancaria
 		if(decision.get("command").equals("abort")){
 			for (Action action : this.logs){
 				if (action.getId().equals(decision.get("id"))) this.logs.remove(action);
-				return;
+				throw new FailException();
 			}
 		}
 
