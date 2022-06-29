@@ -14,6 +14,6 @@ Repositório para armazenar trabalhos desenvolvidos durante a disciplina de Sist
 
 - <a href="https://github.com/RafaelBortolozo/Distributed_systems/tree/main/berkeley_algorithm">Sincronização de Relógios usando Socket (Python)</a>
 
-- <a href="#">Eleição em anel (Python)</a>
+- <a href="#">Eleição em anel usando RMI (Python)</a>
 
 - <a href="https://github.com/RafaelBortolozo/Distributed_systems/tree/main/api_rest/bank_account">Sistema de banco 2PC usando API REST (Java)</a>
