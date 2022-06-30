@@ -97,7 +97,7 @@ public class Manager implements InterfaceManager{
             previous = current;
         }
 
-        //
+        //atualiza o anel
         currentEntry.getValue().electionMessage(new ArrayList<>(), id);
         currentEntry.getValue().fazerCoisa();
         work = true;

@@ -31,8 +31,8 @@ public class CoordinatorController {
 		this.accounts.add(new Account(4345, 50.00));
 		this.accounts.add(new Account(5678, 250.00));
 
-		this.replicas.add(new Replica("replica1", "http://localhost:8081/accounts"));
-		this.replicas.add(new Replica("replica2", "http://localhost:8082/accounts"));
+		this.replicas.add(new Replica("replica1", "http://localhost:8081"));
+		this.replicas.add(new Replica("replica2", "http://localhost:8082"));
 	}
 
 	// Pega todas as contas
@@ -100,7 +100,7 @@ public class CoordinatorController {
 					if (vote){
 						count++;
 					}
-				}1
+				}
 				if (count == votes.size()) {
 					this.decisions.add(new Decision(action.getId(), true));
 					System.out.print("NOVA ACAO VALIDA: " + action.getId());
